@@ -48,53 +48,6 @@ class Rect:
             self.height = imgSize[1] - self.y
 
 
-def getPageFromImage(candidateImage):
-    greyscaleImage = cv2.cvtColor(candidateImage, cv2.COLOR_BGR2GRAY)
-    cv2.imshow('Full candidate image as greyscale', greyscaleImage)
-    clonedGreyscaleImage = greyscaleImage.copy()
-
-    threshold, _ = cv2.threshold(src=clonedGreyscaleImage, thresh=0, maxval=255, type=cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    cv2.imshow('Full candidate image thresholded', threshold)
-    cannyedImage = cv2.Canny(image=clonedGreyscaleImage, threshold1=0.5*threshold, threshold2=threshold)
-    cv2.imshow('Full candidate image cannyed', cannyedImage)
-
-    _, contours, _ = cv2.findContours(image=cannyedImage.copy(), mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_SIMPLE)
-
-    # There is no page in the image
-    if len(contours) == 0:
-        print('No Page Found')
-        return candidateImage
-
-    biggestRectangle = Rect(0, 0, 0, 0)
-    for contour in contours:
-        # Detect edges
-        # Reference - http://docs.opencv.org/3.1.0/dd/d49/tutorial_py_contour_features.html
-        epsilon = cv2.arcLength(contour, True)
-        corners = cv2.approxPolyDP(contour, 0.1 * epsilon, True)
-        x, y, width, height = cv2.boundingRect(points=contour)
-        currentArea = width * height
-
-        # check if length of approx is 4
-        if len(corners) == 4 and currentArea > biggestRectangle.area:
-            biggestRectangle = Rect(x, y, width, height)
-            print('Is contour convex: ' + str(cv2.isContourConvex(contour)))
-
-    contoursInPage = 0
-    for contour in contours:
-        x, y, _, _ = cv2.boundingRect(points=contour)
-        inbetweenX = x > biggestRectangle.x and x < biggestRectangle.x + biggestRectangle.width
-        inbetweenY = y > biggestRectangle.y and y < biggestRectangle.y + biggestRectangle.height
-        if (inbetweenX) and (inbetweenY):
-            contoursInPage += 1
-
-    minimumContoursInPage = 5
-    if contoursInPage <= minimumContoursInPage:
-        print('No Page Found')
-        return candidateImage
-
-    return candidateImage[biggestRectangle.y: biggestRectangle.y + biggestRectangle.height, biggestRectangle.x: biggestRectangle.x + biggestRectangle.width]
-
-
 def getSignatureFromPage(candidateImage):
     imageSize = np.shape(candidateImage)
 
@@ -129,40 +82,26 @@ def getSignatureFromPage(candidateImage):
     maxRectangle.addPadding(imgSize=imageSize, padding=10)
 
     return candidateImage[maxRectangle.y: maxRectangle.y + maxRectangle.height, maxRectangle.x: maxRectangle.x + maxRectangle.width]
+    
+
+def display(image, title='', maxDesiredDimension=1280, minDesiredDimension=720):
+    height, width, channels = image.shape
+
+    maximum = max(height, width)
+    minimum = min(height, width)
+
+    dsize = (maxDesiredDimension, minDesiredDimension) if height == max else (minDesiredDimension, maxDesiredDimension)
+    resized = cv2.resize(image, dsize) 
+    cv2.imshow(title, resized)
 
 
-def getSignature(candidateImage):
-    imageSize = np.shape(candidateImage)
+def run():
+    candidateImage = cv2.imread('release.jpeg')
+    display(candidateImage, 'Candidate Image')
 
-    greyscaleImage = cv2.cvtColor(candidateImage, cv2.COLOR_BGR2GRAY)
-
-    blockSize = 21
-    constant = 10
-    if blockSize > imageSize[0]:
-        if imageSize[0] % 2 == 0:
-            blockSize = imageSize[0] - 1
-        else:
-            blockSize = imageSize[0]
-
-    if blockSize > imageSize[1]:
-        if imageSize[0] % 2 == 0:
-            blockSize = imageSize[1] - 1
-        else:
-            blockSize = imageSize[1]
-
-    mask = cv2.adaptiveThreshold(greyscaleImage, maxValue=255, adaptiveMethod=cv2.ADAPTIVE_THRESH_MEAN_C, thresholdType=cv2.THRESH_BINARY, blockSize=blockSize, C=constant)
-    negatedMask = cv2.bitwise_not(mask)
-
-    return cv2.bitwise_and(candidateImage, candidateImage, mask=negatedMask)
+    candidateSignature = getSignatureFromPage(candidateImage)
+    display(candidateSignature, 'Candidate Signature')
 
 
-imageFolderPath = 'images/'
-candidateImage = cv2.imread(imageFolderPath + 'mysig2.jpg')
-
-candidatePage = getPageFromImage(candidateImage)
-candidateSignature = getSignatureFromPage(candidatePage)
-signature = getSignature(candidateSignature)
-
-cv2.imshow('Signature', signature)
-key = cv2.waitKey(0)
-cv2.destroyAllWindows()
+run()
+cv2.waitKey(0)

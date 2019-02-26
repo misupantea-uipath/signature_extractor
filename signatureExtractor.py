@@ -32,6 +32,7 @@ class Rect:
         self.height = height
         self.area = width * height
 
+
     def addPadding(self, imgSize, padding):
         self.x -= padding
         self.y -= padding
@@ -61,7 +62,7 @@ def getPageFromImage(candidateImage):
 
     # There is no page in the image
     if len(contours) == 0:
-        print 'No Page Found'
+        print('No Page Found')
         return candidateImage
 
     biggestRectangle = Rect(0, 0, 0, 0)
@@ -76,7 +77,7 @@ def getPageFromImage(candidateImage):
         # check if length of approx is 4
         if len(corners) == 4 and currentArea > biggestRectangle.area:
             biggestRectangle = Rect(x, y, width, height)
-            print 'Is contour convex: ' + str(cv2.isContourConvex(contour))
+            print('Is contour convex: ' + str(cv2.isContourConvex(contour)))
 
     contoursInPage = 0
     for contour in contours:
@@ -88,7 +89,7 @@ def getPageFromImage(candidateImage):
 
     minimumContoursInPage = 5
     if contoursInPage <= minimumContoursInPage:
-        print 'No Page Found'
+        print('No Page Found')
         return candidateImage
 
     return candidateImage[biggestRectangle.y: biggestRectangle.y + biggestRectangle.height, biggestRectangle.x: biggestRectangle.x + biggestRectangle.width]
@@ -156,9 +157,7 @@ def getSignature(candidateImage):
 
 
 imageFolderPath = 'images/'
-candidateImage = cv2.imread(imageFolderPath + 'mysig3.jpg')
-cv2.imshow('Full candidate image', candidateImage)
-key = cv2.waitKey(0)
+candidateImage = cv2.imread(imageFolderPath + 'mysig2.jpg')
 
 candidatePage = getPageFromImage(candidateImage)
 candidateSignature = getSignatureFromPage(candidatePage)

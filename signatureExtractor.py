@@ -1,25 +1,3 @@
-###############################
-#
-#   (c) Vlad Zat 2017
-#   Student No: C14714071
-#   Course: DT228
-#   Date: 06-10-2017
-#
-#	Title: Signature Extractor
-
-#   Get Signature from Page:
-#   * convert image to grayscale
-#   * get edges of the signature
-#   * close the result
-#   * find contours
-#   * find the contour with the biggest bounding rectangle area
-#   * add padding to the bounding rectangle
-#   * generate a new image that only contains the largest bounding rectangle
-
-# Extra Notes:
-# Filtering is not necessary because writting doesn't have a texture to impede edge detection
-# Filtering in this case only makes the text harder to read
-
 import numpy as np
 import cv2
 
@@ -49,8 +27,6 @@ class Rect:
 
 
 def getSignatureFromPage(candidateImage):
-    imageSize = np.shape(candidateImage)
-
     greyscaleImage = cv2.cvtColor(candidateImage, cv2.COLOR_BGR2GRAY)
 
     # The values for edge detection can be approximated using Otsu's Algorithm
@@ -79,12 +55,12 @@ def getSignatureFromPage(candidateImage):
             maxRectangle = Rect(x, y, w, h)
 
     # Increase the bounding box to get a better view of the signature
-    maxRectangle.addPadding(imgSize=imageSize, padding=10)
+    maxRectangle.addPadding(imgSize=candidateImage.shape, padding=10)
 
     return candidateImage[maxRectangle.y: maxRectangle.y + maxRectangle.height, maxRectangle.x: maxRectangle.x + maxRectangle.width]
-    
 
-def display(image, title='', maxDesiredDimension=1280, minDesiredDimension=720):
+
+def displayImage(image, title='', maxDesiredDimension=1280, minDesiredDimension=720):
     height, width, channels = image.shape
 
     maximum = max(height, width)
@@ -95,13 +71,28 @@ def display(image, title='', maxDesiredDimension=1280, minDesiredDimension=720):
     cv2.imshow(title, resized)
 
 
-def run():
-    candidateImage = cv2.imread('release.jpeg')
-    display(candidateImage, 'Candidate Image')
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+        
+    
+def run(imagePath, display):
+    candidateImage = cv2.imread(imagePath)
+    display = str2bool(display)
+    
+    if(display):
+        displayImage(candidateImage, 'Candidate Image')
 
     candidateSignature = getSignatureFromPage(candidateImage)
-    display(candidateSignature, 'Candidate Signature')
+    if(display):
+        displayImage(candidateSignature, 'Candidate Signature')
+        
+    cv2.waitKey(2000)
+    cv2.destroyAllWindows()
 
-
-run()
-cv2.waitKey(0)
+# run('C:\\Users\\Mihai Pantea\\Desktop\\OpenCV - Signature detection\\images\\release-signed.jpg', 'yes')
+# run('C:\\Users\\Mihai Pantea\\Desktop\\OpenCV - Signature detection\\images\\contract-signed.jpg', 'n')
